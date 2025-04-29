@@ -1,5 +1,5 @@
-﻿using Elders.Cronus.Cluster.Consul.Internal;
-using Elders.Cronus.Cluster.Job;
+﻿using One.Inception.Cluster.Consul.Internal;
+using One.Inception.Cluster.Job;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System;
@@ -10,9 +10,9 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Elders.Cronus.Cluster.Consul
+namespace One.Inception.Cluster.Consul
 {
-    public sealed class CronusJobRunner : AbstractCronusJobRunner, IClusterOperations, IDisposable
+    public sealed class InceptionJobRunner : AbstractInceptionJobRunner, IClusterOperations, IDisposable
     {
         private static JsonSerializerSettings settings = new JsonSerializerSettings()
         {
@@ -20,12 +20,12 @@ namespace Elders.Cronus.Cluster.Consul
         };
 
         private readonly HttpClient _client;
-        private readonly ILogger<CronusJobRunner> logger;
+        private readonly ILogger<InceptionJobRunner> logger;
 
         string _jobName = string.Empty;
         string _sessionId = string.Empty;
 
-        public CronusJobRunner(JobManager jobManager, HttpClient httpClient, ILogger<CronusJobRunner> logger) : base(jobManager)
+        public InceptionJobRunner(JobManager jobManager, HttpClient httpClient, ILogger<InceptionJobRunner> logger) : base(jobManager)
         {
             _client = httpClient;
             this.logger = logger;
@@ -50,7 +50,7 @@ namespace Elders.Cronus.Cluster.Consul
             KingIsDead().GetAwaiter().GetResult();
         }
 
-        protected override async Task<JobExecutionStatus> ExecuteInternalAsync(ICronusJob<object> job, CancellationToken cancellationToken = default)
+        protected override async Task<JobExecutionStatus> ExecuteInternalAsync(IInceptionJob<object> job, CancellationToken cancellationToken = default)
         {
             CancellationTokenSource tokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             CancellationToken ct = tokenSource.Token;
@@ -59,9 +59,9 @@ namespace Elders.Cronus.Cluster.Consul
 
             try
             {
-                CronusJobState jobState = await GetJobStateAsync(ct).ConfigureAwait(false);
+                InceptionJobState jobState = await GetJobStateAsync(ct).ConfigureAwait(false);
 
-                if (jobState == CronusJobState.UpForGrab)
+                if (jobState == InceptionJobState.UpForGrab)
                 {
                     await job.SyncInitialStateAsync(this, ct).ConfigureAwait(false);
 
@@ -71,7 +71,7 @@ namespace Elders.Cronus.Cluster.Consul
                         using (Timer pinger = new Timer(PingTimerMethod, tokenSource, TimeSpan.Zero, TimeSpan.FromSeconds(10)))
                         {
                             jobState = await GetJobStateAsync(ct).ConfigureAwait(false);
-                            if (jobState == CronusJobState.UpForGrab)
+                            if (jobState == InceptionJobState.UpForGrab)
                                 return await job.RunAsync(this, ct).ConfigureAwait(false);
                         }
                     }
@@ -82,10 +82,10 @@ namespace Elders.Cronus.Cluster.Consul
                     }
                 }
 
-                if (jobState == CronusJobState.Running)
+                if (jobState == InceptionJobState.Running)
                     return JobExecutionStatus.Running;
             }
-            catch (Exception ex) when (ExceptionFilterUtility.True(() => logger.LogError(ex, "Failed to execute job {cronus_job_name}", _jobName)))
+            catch (Exception ex) when (ExceptionFilterUtility.True(() => logger.LogError(ex, "Failed to execute job {inception_job_name}", _jobName)))
             {
                 return JobExecutionStatus.Failed;
             }
@@ -132,11 +132,11 @@ namespace Elders.Cronus.Cluster.Consul
 
         private bool IAmKing => string.IsNullOrEmpty(_sessionId) == false;
 
-        private async Task<CronusJobState> GetJobStateAsync(CancellationToken cancellationToken = default)
+        private async Task<InceptionJobState> GetJobStateAsync(CancellationToken cancellationToken = default)
         {
-            CronusJobState jobState = CronusJobState.UpForGrab;
+            InceptionJobState jobState = InceptionJobState.UpForGrab;
 
-            string resource = $"v1/kv/cronus/{_jobName}";
+            string resource = $"v1/kv/inception/{_jobName}";
             HttpResponseMessage response = await _client.GetAsync(resource, cancellationToken).ConfigureAwait(false);
 
             if (response.IsSuccessStatusCode)
@@ -145,11 +145,11 @@ namespace Elders.Cronus.Cluster.Consul
                 KVResponse result = resultAsList.FirstOrDefault();
 
                 jobState = string.IsNullOrEmpty(result?.Session)
-                    ? CronusJobState.UpForGrab
-                    : CronusJobState.Running;
+                    ? InceptionJobState.UpForGrab
+                    : InceptionJobState.Running;
 
                 if (string.IsNullOrEmpty(_sessionId) == false && result.Session.Equals(_sessionId, StringComparison.OrdinalIgnoreCase))
-                    jobState = CronusJobState.UpForGrab;
+                    jobState = InceptionJobState.UpForGrab;
             }
 
             return jobState;
@@ -157,7 +157,7 @@ namespace Elders.Cronus.Cluster.Consul
 
         private async Task<TData> GetJobDataAsync<TData>(CancellationToken cancellationToken = default) where TData : class, new()
         {
-            string resource = $"v1/kv/cronus/{_jobName}";
+            string resource = $"v1/kv/inception/{_jobName}";
             HttpResponseMessage response = await _client.GetAsync(resource, cancellationToken).ConfigureAwait(false);
 
             if (response.IsSuccessStatusCode)
@@ -179,7 +179,7 @@ namespace Elders.Cronus.Cluster.Consul
 
         private Task TrackProgressAsync(object data, CancellationToken cancellationToken = default)
         {
-            string resource = $"v1/kv/cronus/{_jobName}?acquire={_sessionId}";
+            string resource = $"v1/kv/inception/{_jobName}?acquire={_sessionId}";
             StringContent content = GetJsonRequestBody(data);
 
             return _client.PutAsync(resource, content, cancellationToken);
@@ -189,7 +189,7 @@ namespace Elders.Cronus.Cluster.Consul
         {
             string sessionId = await RequestSessionAsync(cancellationToken).ConfigureAwait(false);
 
-            string resource = $"v1/kv/cronus/{_jobName}?acquire={sessionId}";
+            string resource = $"v1/kv/inception/{_jobName}?acquire={sessionId}";
             StringContent content = GetJsonRequestBody(data);
 
             HttpResponseMessage response = await _client.PutAsync(resource, content, cancellationToken).ConfigureAwait(false);
@@ -207,7 +207,7 @@ namespace Elders.Cronus.Cluster.Consul
         {
             if (string.IsNullOrEmpty(_sessionId) == false)
             {
-                string resource = $"v1/kv/cronus/{_jobName}?release={_sessionId}";
+                string resource = $"v1/kv/inception/{_jobName}?release={_sessionId}";
                 var data = await GetJobDataAsync<object>().ConfigureAwait(false);
                 StringContent content = GetJsonRequestBody(data);
                 await _client.PutAsync(resource, content).ConfigureAwait(false);

@@ -1,4 +1,4 @@
-﻿namespace Elders.Cronus.Cluster.Consul.Internal
+﻿namespace One.Inception.Cluster.Consul.Internal
 {
     internal class SessionRequest
     {

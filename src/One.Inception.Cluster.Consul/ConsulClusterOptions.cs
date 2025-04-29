@@ -1,4 +1,4 @@
-﻿namespace Elders.Cronus.Persistence.Cassandra
+﻿namespace One.Inception.Persistence.Cassandra
 {
     public class ConsulClusterOptions
     {

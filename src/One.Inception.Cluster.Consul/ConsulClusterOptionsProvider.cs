@@ -1,10 +1,10 @@
 ﻿using Microsoft.Extensions.Configuration;
 
-namespace Elders.Cronus.Persistence.Cassandra
+namespace One.Inception.Persistence.Cassandra
 {
-    public class ConsulClusterOptionsProvider : CronusOptionsProviderBase<ConsulClusterOptions>
+    public class ConsulClusterOptionsProvider : InceptionOptionsProviderBase<ConsulClusterOptions>
     {
-        public const string SettingKey = "cronus:cluster:consul";
+        public const string SettingKey = "inception:cluster:consul";
 
         public ConsulClusterOptionsProvider(IConfiguration configuration) : base(configuration) { }
 
