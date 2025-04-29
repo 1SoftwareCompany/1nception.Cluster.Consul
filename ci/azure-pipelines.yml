@@ -1,6 +1,6 @@
 ---
 variables:
-  PROJECT_DIR: One.Inception.Cronus.Cluster.Consul
+  PROJECT_DIR: One.Inception.Cluster.Consul
 
 trigger:
   branches:
