@@ -245,20 +245,25 @@ namespace One.Inception.Cluster.Consul
 
         private async Task<bool> DeleteKeyAsync(CancellationToken cancellationToken = default)
         {
-            string resource = $"v1/kv/inception/{_jobName}";
-            HttpResponseMessage response = await _client.DeleteAsync(resource, cancellationToken).ConfigureAwait(false);
+            if (string.IsNullOrEmpty(_sessionId) == false)
+            {
+                string resource = $"v1/kv/inception/{_jobName}";
+                HttpResponseMessage response = await _client.DeleteAsync(resource, cancellationToken).ConfigureAwait(false);
 
-            try
-            {
-                if (response.IsSuccessStatusCode)
+                try
                 {
-                    bool isSuccess = await ParseResponse<bool>(response).ConfigureAwait(false);
-                    return isSuccess;
+                    if (response.IsSuccessStatusCode)
+                    {
+                        bool isSuccess = await ParseResponse<bool>(response).ConfigureAwait(false);
+                        _sessionId = string.Empty;
+
+                        return isSuccess;
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Problem while deleting key {key}", _jobName);
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Problem while deleting key {key}", _jobName);
+                }
             }
 
             return false;
