@@ -31,7 +31,7 @@
 
   <ItemGroup>
     <PackageReference Include="1nception" Version="12.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.18" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.19" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
   </ItemGroup>
 </Project>
