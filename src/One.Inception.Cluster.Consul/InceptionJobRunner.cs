@@ -45,6 +45,13 @@ namespace One.Inception.Cluster.Consul
             return await GetJobDataAsync<TData>(cancellationToken).ConfigureAwait(false);
         }
 
+        public async Task<bool> DeleteAsync(CancellationToken cancellationToken = default)
+        {
+            await RenewSessionAsync(cancellationToken).ConfigureAwait(false);
+
+            return await DeleteKeyAsync(cancellationToken).ConfigureAwait(false);
+        }
+
         public override void Dispose()
         {
             KingIsDead().GetAwaiter().GetResult();
@@ -234,6 +241,32 @@ namespace One.Inception.Cluster.Consul
             StringContent stringContent = new StringContent(jsonBody, Encoding.UTF8, "application/json");
 
             return stringContent;
+        }
+
+        private async Task<bool> DeleteKeyAsync(CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrEmpty(_sessionId) == false)
+            {
+                string resource = $"v1/kv/inception/{_jobName}";
+                HttpResponseMessage response = await _client.DeleteAsync(resource, cancellationToken).ConfigureAwait(false);
+
+                try
+                {
+                    if (response.IsSuccessStatusCode)
+                    {
+                        bool isSuccess = await ParseResponse<bool>(response).ConfigureAwait(false);
+                        _sessionId = string.Empty;
+
+                        return isSuccess;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Problem while deleting key {key}", _jobName);
+                }
+            }
+
+            return false;
         }
     }
 }
