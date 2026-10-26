@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Linq;
+using System.Net.Http;
+using One.Inception.Cluster;
 using One.Inception.Cluster.Consul;
 using One.Inception.Cluster.Job;
 using One.Inception.Discoveries;
@@ -19,17 +21,20 @@ namespace One.Inception.Persistence.Cassandra
         {
             services.AddOptions<ConsulClusterOptions, ConsulClusterOptionsProvider>();
 
-            services.AddHttpClient<IInceptionJobRunner, InceptionJobRunner>("inception", (provider, client) =>
-            {
-                var options = provider.GetRequiredService<IOptions<ConsulClusterOptions>>().Value;
-                var builder = new UriBuilder(options.Address);
-                builder.Port = options.Port;
+            services.AddHttpClient<IInceptionJobRunner, InceptionJobRunner>("inception", ConfigureClient);
+            services.AddHttpClient<ITenantsRegistry, ConsulTenantsRegistry>("inception-tenants", ConfigureClient);
+        }
 
-                client.BaseAddress = builder.Uri;
+        private static void ConfigureClient(IServiceProvider provider, HttpClient client)
+        {
+            var options = provider.GetRequiredService<IOptions<ConsulClusterOptions>>().Value;
+            var builder = new UriBuilder(options.Address);
+            builder.Port = options.Port;
 
-                //var authorization = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($"{gateway.ApiClient.ApiUsername}:{gateway.ApiClient.ApiPassword}"));
-                //client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", authorization);
-            });
+            client.BaseAddress = builder.Uri;
+
+            //var authorization = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($"{gateway.ApiClient.ApiUsername}:{gateway.ApiClient.ApiPassword}"));
+            //client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", authorization);
         }
     }
 }
